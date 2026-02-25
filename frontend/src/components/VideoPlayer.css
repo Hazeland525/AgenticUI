@@ -1,0 +1,96 @@
+video {
+  object-fit: cover;
+}
+
+.video-player-container {
+  width: 100%;
+  height: 100%;
+  background: #06101E;
+  display: block;
+  position: relative;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden; /* clip content to border-radius when has-results */
+  border-radius: 0;
+  transition: border-radius 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-player-container.has-results {
+  border-radius: 24px;
+}
+
+/* Full screen: no radius; shrunk (has-results): 24px with smooth transition */
+.video-player-container :global(.react-player) {
+  border-radius: 0;
+  overflow: hidden;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: border-radius 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-player-container.has-results :global(.react-player) {
+  border-radius: 24px;
+}
+
+.video-player-container :global(.react-player > div) {
+  border-radius: 0;
+  overflow: hidden;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: border-radius 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-player-container.has-results :global(.react-player > div) {
+  border-radius: 24px;
+}
+
+.video-player-container :global(.react-player video) {
+  border-radius: 0 !important;
+  overflow: hidden;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block;
+  transition: border-radius 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-player-container.has-results :global(.react-player video) {
+  border-radius: 24px !important;
+}
+
+.video-player-placeholder {
+  text-align: center;
+  color: #999;
+  padding: 40px;
+}
+
+.video-player-hint {
+  font-size: 0.875rem;
+  margin-top: 8px;
+  color: #666;
+}
+
+.video-player-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(220, 38, 38, 0.9);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  z-index: 10;
+  text-align: center;
+}
+
+
+/* Alternative approach - target the controls wrapper */
+.video-player-container :global(div[class*="controls"]) {
+  background: #06101E !important;
+}

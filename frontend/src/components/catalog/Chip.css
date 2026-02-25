@@ -1,0 +1,36 @@
+.a2ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  font-size: 0.875rem;
+  color: #ffffff;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+
+.a2ui-chip-selected {
+  background-color: #1976d2;
+  border-color: #1976d2;
+  color: white;
+}
+
+.a2ui-chip-selected:hover {
+  background-color: #1565c0;
+}
+
+.a2ui-chip-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.a2ui-chip-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}

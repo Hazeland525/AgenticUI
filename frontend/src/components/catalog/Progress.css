@@ -1,0 +1,36 @@
+.a2ui-progress {
+  display: flex;
+  align-items: center;
+}
+
+/* Dots variant */
+.a2ui-progress-dots {
+  gap: 0.5rem;
+}
+
+.a2ui-progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  transition: background-color 0.2s ease;
+}
+
+.a2ui-progress-dot-active {
+  background-color: #1976d2;
+}
+
+/* Bar variant */
+.a2ui-progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.a2ui-progress-bar-fill {
+  height: 100%;
+  background-color: #1976d2;
+  transition: width 0.3s ease;
+}

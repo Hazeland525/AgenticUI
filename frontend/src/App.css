@@ -1,0 +1,224 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* Font family inherited from :root in index.css (One UI Sans) */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #06101E;
+  color: white;
+}
+
+
+.provider-icon {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.video-title-select {
+  padding: 0px 8px;
+  background: transparent;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'One UI Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 600;
+  min-width: 200px;
+  outline: none;
+  line-height: 1.2;
+}
+
+.video-title-select option {
+  background: #06101E;
+  color: white;
+}
+
+.video-title-select:hover {
+  opacity: 0.8;
+}
+
+.video-title-select:focus {
+  outline: none;
+  border: none;
+}
+
+
+.file-input-label {
+  padding: 8px 16px;
+  background: #2563eb;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.file-input-label:hover {
+  background: #1d4ed8;
+}
+
+.file-input {
+  display: none;
+}
+
+/* Two columns: left (topbar + content), right (sidebar full height from top) */
+.app-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  overflow: visible;
+  position: relative; /* for profile overlay positioning */
+}
+
+.app-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: visible;
+  position: relative;
+  z-index: 1; /* video (inside) draws above sidebar column */
+}
+
+.app-topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 48px;
+  background: #06101E;
+  font-family: 'One UI Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* When video is playing: header floats on top of video */
+.app-topbar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: linear-gradient(to bottom, rgba(6, 16, 30, 0.85) 0%, rgba(6, 16, 30, 0.4) 70%, transparent 100%);
+  pointer-events: auto;
+}
+
+/* p1: empty dark area when no video selected */
+.app-empty {
+  flex: 1;
+  background: #06101E;
+  min-height: 0;
+}
+
+/* Video area: when video selected, fills entire left column (top to bottom) so video is full-screen */
+.app-video-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: visible;
+  z-index: 0;
+}
+
+.video-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  /* No result: full width over sidebar; has result: left column only */
+  width: calc(100% + 25vw);
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  box-sizing: border-box;
+  transition: width 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    margin 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-section.has-results {
+  width: 100%;
+  margin: 124px 0px 96px 0px;
+  padding: 0px 0px 0px 48px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #06101E;
+}
+
+.app-sidebar-column {
+  width: 25vw;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  z-index: 0; /* below video when video is full-width */
+}
+
+/* Profile stays on top of video (and sidebar); only this is above the video */
+.app-profile-overlay {
+  position: absolute;
+  top: 36px;
+  right: 36px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.app-profile-overlay-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  background: rgba(6, 16, 30, 0.8);
+  transition: opacity 0.2s;
+}
+
+.app-profile-overlay-btn:hover {
+  opacity: 0.9;
+}
+
+.app-profile-overlay-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-footer {
+  padding: 16px 24px;
+  background: #06101E;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Style react-player controls to match dark theme */
+.video-player-container .react-player__controls {
+  background: #06101E !important;
+}
+
+.video-player-container .react-player__play-icon,
+.video-player-container .react-player__volume-button,
+.video-player-container .react-player__fullscreen-button {
+  background: #06101E !important;
+}

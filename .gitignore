@@ -16,6 +16,9 @@ ENV/
 .env
 .env.local
 
+# Secrets / credentials (never commit)
+backend/services/credentials.json
+
 # Node
 node_modules/
 dist/

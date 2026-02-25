@@ -1,0 +1,107 @@
+.sidebar {
+  width: 25vw; /* Fixed 25% of viewport width */
+  min-width: 25vw;
+  max-width: 25vw;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #06101E;
+  color: white;
+  position: relative; /* Allow absolute children to overflow */
+  overflow: visible; /* Allow background image to overflow */
+  padding-left: 0px; /* Add left padding to give room for overflow */
+}
+
+/* Background image that can overflow */
+.sidebar-background-image {
+  position: absolute;
+  top: 0;
+  left: 0px; /* Extend to the left to overflow */
+  right: 0;
+  bottom: 0;
+  z-index: 0; /* Behind everything */
+  opacity: 0.4; /* Make it more subtle */
+}
+
+/* Gradient overlay for merging effect - creates smooth transition to background */
+.sidebar-gradient-overlay {
+  position: absolute;
+  top: 0;
+  left: 0px; /* Match background image position */
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to right,
+    rgba(6, 16, 30, 1) 0%, /* Fully opaque on the left (merging with video section) */
+    rgba(6, 16, 30, 0.95) 10%,
+    rgba(6, 16, 30, 0.85) 30%,
+    rgba(6, 16, 30, 0.7) 60%,
+    rgba(6, 16, 30, 0.6) 100% /* More transparent on the right */
+  );
+  pointer-events: none;
+  z-index: 1; /* Above background image, below content */
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  padding: 48px 48px 24px 48px; /* Top padding to account for profile image (16px top + 54px height + 16px spacing) */
+  min-width: 0; /* Allow content to shrink */
+  word-wrap: break-word; /* Allow long words to wrap */
+  overflow-wrap: break-word; /* Modern property for word wrapping */
+  position: relative;
+  z-index: 2; /* Above gradient overlay */
+}
+
+/* Content wrapper to ensure content appears above background */
+.sidebar-content-wrapper {
+  position: relative;
+  z-index: 2;
+  margin-top: 64px;
+}
+
+.sidebar-question {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.3rem;
+  position: relative;
+  z-index: 2;
+}
+
+.sidebar-loading {
+  text-align: left;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.6);
+  position: relative;
+  z-index: 2;
+}
+
+.sidebar-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.5);
+  position: relative;
+  z-index: 2;
+}
+
+.sidebar-components {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0; /* Prevent expansion */
+  position: relative;
+  z-index: 2;
+}
+
+.sidebar-answer-wrapper {
+  margin-bottom: 16px;
+  width: 100%;
+  min-width: 0; /* Prevent expansion */
+  overflow: hidden; /* Clip any overflowing content */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  position: relative;
+  z-index: 2;
+}

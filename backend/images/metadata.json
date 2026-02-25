@@ -1,0 +1,145 @@
+{
+  "food": [
+    {
+      "id": "king_crab",
+      "filename": "crab.jpg",
+      "tags": ["seafood", "crab", "raw"],
+      "description": "A whole raw king crab presented on ice with shellfish and fresh herbs"
+    },
+    {
+        "id": "jamon",
+        "filename": "Jamón.jpg",
+        "tags": ["meat", "ham", "charcuterie", "spanish", "ingredients"],
+        "description": "Thinly sliced Spanish jamón with rich marbling served alongside olives and cheese."
+      },
+      {
+        "id": "asparagus_grilled",
+        "filename": "asparagus_grilled.jpg",
+        "tags": ["vegetable", "asparagus", "grilled", "side-dish", "cooking"],
+        "description": "Grilled asparagus spears with light charring served on a ceramic plate."
+      },
+      {
+        "id": "fresh_herbs",
+        "filename": "chive.jpg",
+        "tags": ["herbs", "chives", "greens", "fresh", "ingredients"],
+        "description": "Fresh chives and leafy herbs growing in natural light near a window."
+      },
+      {
+        "id": "artichoke_raw",
+        "filename": "artichoke.jpg",
+        "tags": ["vegetable", "artichoke", "raw", "ingredients"],
+        "description": "Two whole raw artichokes shown against a clean white background."
+      },
+      {
+        "id": "mussels_raw",
+        "filename": "mussel.jpg",
+        "tags": ["seafood", "mussels", "shellfish", "raw", "ingredients"],
+        "description": "Fresh raw mussels opened to reveal their orange flesh, served with lemon."
+      },
+      {
+        "id": "scallops_raw",
+        "filename": "scallop.jpg",
+        "tags": ["seafood", "scallops", "shellfish", "raw", "ingredients"],
+        "description": "Raw scallops resting in their shells on a bed of crushed ice."
+      },
+      {
+        "id": "scallops_seared",
+        "filename": "scallopdish.jpg",
+        "tags": ["seafood", "scallops", "seared", "dish", "cooking"],
+        "description": "Pan-seared scallops with a golden crust served in a light sauce."
+      },
+      {
+        "id": "mussels_cooked",
+        "filename": "musseldish.jpg",
+        "tags": ["seafood", "mussels", "cooked", "dish", "cooking"],
+        "description": "Cooked mussels served in a pan with garlic, herbs, and lemon."
+      },
+      {
+        "id": "parsley_fresh",
+        "filename": "parsley.jpg",
+        "tags": ["herbs", "parsley", "fresh", "ingredients", "greens"],
+        "description": "Fresh parsley leaves growing densely with bright green color and delicate stems."
+      },
+      {
+        "id": "anemone_flower",
+        "filename": "anemone.jpg",
+        "tags": ["flower", "anemone", "nature", "plant", "bloom"],
+        "description": "White and yellow anemone flowers in bloom with soft petals and visible stamens."
+      },
+      {
+        "id": "pasta_shells_raw",
+        "filename": "pastashell.jpg",
+        "tags": ["pasta", "shells", "dry", "ingredients", "italian"],
+        "description": "Uncooked pasta shells with ridged texture shown in a close-up view."
+      },
+      {
+        "id": "pasta_shells_dish",
+        "filename": "pastashelldish.jpg",
+        "tags": ["pasta", "shells", "cooked", "dish", "italian", "cooking"],
+        "description": "Cooked pasta shells filled with sauce and herbs served in a dark bowl."
+      },
+      {
+        "id": "korean_chili_pepper",
+        "filename": "koreanpepper.jpg",
+        "tags": ["pepper", "chili", "green", "vegetables", "korean", "spicy", "cheongyang"],
+        "description": "A basket of fresh, vibrant green Cheongyang chili peppers, characterized by their long, slender shape and glossy skin."
+      },
+      {
+        "id": "korean_fish_cake_soup",
+        "filename": "eomuk_tang.jpg",
+        "tags": ["korean", "street food", "fish cakes", "eomuk", "soup", "skewers", "savory"],
+        "description": "Skewered wavy fish cakes (eomuk) simmering in a clear, savory broth inside a gold-colored metal pot, garnished with sliced green scallions."
+      },
+      {
+        "id": "korean_rice_cakes_raw",
+        "filename": "garaetteok.jpg",
+        "tags": ["korean", "rice cakes", "garae-tteok", "ingredients", "chewy", "tteokbokki"],
+        "description": "A pile of cylindrical white Korean rice cakes (garae-tteok) on a stone plate, accompanied by fresh green onions and a side of gochujang (red chili paste)."
+      },
+      {
+        "id": "korean_gochujang_paste",
+        "filename": "gochujang.jpg",
+        "tags": ["korean", "condiment", "fermented", "chili paste", "spicy", "gochugaru", "ingredients"],
+        "description": "A spoonful of thick, deep red gochujang (fermented chili paste) being lifted from a white ceramic bowl, with dried chili flakes and fresh red peppers in the background."
+      },
+      {
+        "id": "tteokbokki_cooked",
+        "filename": "tteokbokki.jpg",
+        "tags": ["korean", "street food", "spicy", "tteokbokki", "rice cakes", "boiled egg", "sesame seeds"],
+        "description": "A bowl of stir-fried Korean rice cakes (tteokbokki) coated in a thick, spicy red sauce, garnished with sesame seeds, sliced green onions, and served with a hard-boiled egg cut in half."
+      },
+      {
+        "id": "kimbap_rolls",
+        "filename": "kimbap.jpg",
+        "tags": ["korean", "kimbap", "seaweed rolls", "snack", "vegetables", "rice", "sesame seeds"],
+        "description": "Rows of sliced kimbap (Korean seaweed rice rolls) neatly arranged on a plate, filled with colorful ingredients like carrots, yellow pickled radish, and egg, topped with a sprinkle of toasted sesame seeds."
+      },
+      {
+        "id": "soondae_blood_sausage",
+        "filename": "soondae.jpg",
+        "tags": ["korean", "street food", "soondae", "blood sausage", "dangmyeon", "savory", "traditional"],
+        "description": "A close-up of sliced Soondae (Korean blood sausage) stacked on a white plate, showing the dark, rich filling of glass noodles and barley, served with traditional side dishes like kkakdugi in the background."
+      },
+      {
+        "id": "fried_squid_rings",
+        "filename": "fried_squid.jpg",
+        "tags": ["seafood", "squid", "calamari", "fried", "appetizer", "crispy", "snack"],
+        "description": "Golden-brown, crispy fried squid rings seasoned with chili flakes and fresh herbs, served with a lemon wedge."
+      }
+  ],
+  "people": [
+    {
+        "id": "person_portrait_01",
+        "filename": "frederik.jpg",
+        "tags": ["person", "portrait", "indoor", "casual", "seated"],
+        "description": "A person seated indoors against a brick wall, wearing a dark shirt and looking toward the camera."
+      }
+  ],
+  "objects": [
+
+  ],
+  "places": [
+
+  ]
+}
+

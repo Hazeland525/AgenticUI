@@ -1,0 +1,22 @@
+.a2ui-card {
+  /* border: 1px solid rgba(255, 255, 255, 0.1); */
+  border-radius: 8px;
+  background-color: transparent;
+  box-shadow: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0; /* Allow shrinking */
+  box-sizing: border-box; /* Include padding/border in width */
+  overflow: hidden; /* Clip overflowing content */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.a2ui-card-transparent {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+}
+
+

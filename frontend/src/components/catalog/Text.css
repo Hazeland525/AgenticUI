@@ -1,0 +1,44 @@
+.a2ui-text {
+  margin: 0;
+  padding: 0;
+  color: white; /* Default text color */
+  word-wrap: break-word; /* Allow long words to wrap */
+  overflow-wrap: break-word; /* Modern property for word wrapping */
+  hyphens: auto; /* Allow hyphenation for better wrapping */
+}
+
+/* h1: Main titles */
+.a2ui-text-h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+}
+
+/* h2: Section titles */
+.a2ui-text-h2 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: white;
+}
+
+/* Body: Content text */
+.a2ui-text-body {
+  font-size: 1.3rem;
+  line-height: 1.5;
+  color: white;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%; /* Ensure text doesn't exceed container */
+}
+
+/* Label: Short metadata/captions */
+.a2ui-text-label {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+

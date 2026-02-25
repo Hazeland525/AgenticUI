@@ -1,0 +1,13 @@
+{
+  "name": "Anna",
+  "avatarUrl": "/icons/profile1.jpg",
+  "location": {
+    "address": "San Francisco, CA, USA",
+    "latitude": 37.7749,
+    "longitude": -122.4194
+  },
+  "city": "San Francisco",
+  "region": "CA",
+  "country": "US",
+  "profession": "Designer"
+}

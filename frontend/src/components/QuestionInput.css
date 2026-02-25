@@ -1,0 +1,99 @@
+/* Hover area at the right bottom of the screen */
+.question-input-wrapper {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 25vw; /* Match sidebar width */
+  height: 120px; /* Hover detection area */
+  z-index: 1000;
+  pointer-events: auto; /* Always detect hover */
+}
+
+/* Show input when hovering over the bottom area */
+.question-input-wrapper:hover .question-input {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Show when focused (user is typing) */
+.question-input-wrapper:focus-within .question-input {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.question-input {
+  position: absolute;
+  bottom: 32px;
+  right: 32px;
+  left: 232x; /* Stretch to fill wrapper width with padding */
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(6, 16, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  width: calc(100% - 48px); /* Fill wrapper width minus padding */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  box-sizing: border-box;
+}
+
+/* Show when focused (user is typing) */
+.question-input:focus-within {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.question-input-field {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.question-input-field::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.question-input-field:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.question-input-field:disabled {
+  background: rgba(255, 255, 255, 0.03);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.question-input-button {
+  padding: 12px 24px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.question-input-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.question-input-button:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Voice status (I'm listening... / Processing...) uses shared .voice-status and .voice-status-text from index.css */

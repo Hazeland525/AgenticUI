@@ -1,0 +1,19 @@
+.a2ui-row {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap; /* Allow items to wrap to next row */
+  min-width: 0; /* Allow shrinking */
+  max-width: 100%; /* Prevent expansion beyond container */
+}
+
+/* Action buttons row - special styling */
+.a2ui-row:has(.a2ui-button-action) {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 0;
+  flex-wrap: nowrap; /* Keep action buttons in one row */
+}
+
+

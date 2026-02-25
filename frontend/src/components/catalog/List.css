@@ -1,0 +1,14 @@
+.a2ui-list {
+  width: 100%;
+}
+
+.a2ui-list-vertical {
+  flex-direction: column;
+}
+
+.a2ui-list-horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+

@@ -1,0 +1,36 @@
+.a2ui-image {
+  display: block;
+  max-width: 70%;
+  width: 100%; /* Ensure images respect container width */
+  height: auto;
+  object-fit: contain;
+  box-sizing: border-box; /* Include padding/border in width calculation */
+  border-radius: 12px;
+}
+
+/* Hero: Main subject images (largeFeature/header equivalent) */
+.a2ui-image-hero {
+  width: 35%;
+  max-width: 35%;
+  object-fit: contain;
+}
+
+/* Thumbnail: List items, cards (smallFeature/mediumFeature equivalent) */
+.a2ui-image-thumbnail {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+}
+
+/* Icon: Decorative elements (icon/avatar equivalent) */
+.a2ui-image-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.a2ui-image-default {
+  width: 100%;
+  height: auto;
+}
+
+
