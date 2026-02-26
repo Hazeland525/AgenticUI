@@ -1,83 +1,59 @@
 # Google Cloud Speech-to-Text Setup
 
-## Where to Put Your API Key
+The app uses **Speech-to-Text V2 with the Chirp 2 model** when a project ID and credentials are available (best accuracy). Otherwise it falls back to V1 (API key or legacy client).
 
-You have two options for authenticating with Google Cloud Speech-to-Text:
+## Option 1: V2 with Chirp 2 (Recommended – best accuracy)
 
-### Option 1: Service Account JSON File (Recommended)
+[Chirp 2](https://cloud.google.com/speech-to-text/v2/docs/chirp_2-model) is a high-accuracy model available only in the V2 API.
 
-1. Create a service account in your Google Cloud project:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Navigate to "IAM & Admin" > "Service Accounts"
-   - Create a new service account or use an existing one
-   - Download the JSON key file
+1. **Create a service account** in your [Google Cloud Console](https://console.cloud.google.com/):
+   - IAM & Admin → Service Accounts → Create → Download JSON key.
 
-2. Place the JSON file in your `backend/` directory (or any secure location)
+2. **Enable the Speech-to-Text API** (and Cloud Speech-to-Text API if listed) for your project.
 
-3. Add to your `.env` file in the `backend/` directory:
+3. **Grant the service account** the “Cloud Speech-to-Text API User” role.
+
+4. **Configure `backend/.env`:**
+   ```env
+   GOOGLE_CLOUD_PROJECT=your-gcp-project-id
+   GOOGLE_APPLICATION_CREDENTIALS=./path/to/service-account-key.json
    ```
-   GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/service-account-key.json
-   ```
-   
-   Example (if the file is in the backend directory):
-   ```
-   GOOGLE_APPLICATION_CREDENTIALS=./service-account-key.json
-   ```
+   The project ID can also be read from the service account JSON; setting `GOOGLE_CLOUD_PROJECT` explicitly is optional in that case.
 
-### Option 2: API Key (Less Common)
-
-If you have a Google Cloud API key specifically for Speech-to-Text:
-
-1. Add to your `.env` file in the `backend/` directory:
-   ```
-   GEMINI_API_KEY=your_api_key_here
+5. **Optional – region:** Chirp 2 is available in `us-central1`, `europe-west4`, and `asia-southeast1`. Default is `us-central1`. Override with:
+   ```env
+   SPEECH_V2_LOCATION=us-central1
    ```
 
-**Note:** The API key approach may have limitations. Service account JSON is the recommended method.
+## Option 2: API key only (V1 REST fallback)
 
-## Environment Variables
-
-Your `backend/.env` file should now include:
+If you only set `GEMINI_API_KEY`, the app uses the **V1 REST** API (no Chirp 2). Accuracy is lower than V2 + Chirp 2.
 
 ```env
-# Existing
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# New - Choose ONE of these:
-GOOGLE_APPLICATION_CREDENTIALS=./path/to/service-account-key.json
-# OR
-GOOGLE_CLOUD_SPEECH_API_KEY=your_speech_api_key_here
+GEMINI_API_KEY=your_api_key_here
 ```
 
-## Installation
+To get Chirp 2, use Option 1 (project + service account or ADC).
 
-After adding the credentials, install the new dependency:
+## Installation
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-This will install `google-cloud-speech>=2.21.0`.
+This installs `google-cloud-speech` (V1 and V2 clients).
 
 ## Testing
 
-1. Start the backend server:
-   ```bash
-   cd backend
-   python main.py
-   ```
+1. Start the backend: `cd backend && python main.py`
+2. In the app, hold **S**, speak your question, then release **S**.
 
-2. The frontend will automatically use Google Cloud Speech-to-Text when you:
-   - Press and hold "S" key
-   - Speak your question
-   - Release "S" key
-
-The audio will be captured, sent to Google Cloud Speech-to-Text, transcribed, refined by Gemini, and then submitted as a question.
+Audio is sent to Speech-to-Text (V2 Chirp 2 when configured, otherwise V1), then refined by Gemini and submitted as the question.
 
 ## Troubleshooting
 
-- **"No credentials found"**: Make sure you've set either `GOOGLE_APPLICATION_CREDENTIALS` or `GEMINI_API_KEY` in your `.env` file
-- **"Service account file not found"**: Check that the path in `GOOGLE_APPLICATION_CREDENTIALS` is correct
-- **"Permission denied"**: Make sure your service account has the "Cloud Speech-to-Text API User" role enabled
-- **Enable the API**: Make sure the Cloud Speech-to-Text API is enabled in your Google Cloud project
+- **"No credentials found"**: Set `GOOGLE_CLOUD_PROJECT` and `GOOGLE_APPLICATION_CREDENTIALS` for V2 Chirp 2, or `GEMINI_API_KEY` for V1 REST.
+- **"Service account file not found"**: Fix the path in `GOOGLE_APPLICATION_CREDENTIALS` (relative paths are from `backend/`).
+- **"V2 init failed"**: Ensure the Speech-to-Text API is enabled and the service account has the “Cloud Speech-to-Text API User” role. Chirp 2 is available in `us-central1`, `europe-west4`, and `asia-southeast1`—set `SPEECH_V2_LOCATION` if needed.
+- **Using Chirp 2**: You must set `GOOGLE_CLOUD_PROJECT` (or use a service account JSON that includes `project_id`); API key alone uses V1 only.

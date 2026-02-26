@@ -5,13 +5,19 @@ import { ContextExtractor, useVideoContext } from './components/ContextExtractor
 import { Sidebar } from './components/Sidebar';
 import { CollectionsPage } from './components/CollectionsPage';
 import { QuestionInput } from './components/QuestionInput';
-import { askQuestion, getTtsAudio } from './services/agentService';
+import { askQuestion, getTtsAudio, formatStepMs } from './services/agentService';
+import type { AskWithVoiceResult } from './services/agentService';
 import { saveItem, SavedItem } from './services/libraryService';
 import { getUserProfile } from './services/userProfileService';
 import { UIResponse } from './types/schema';
 import './App.css';
 
 const MAX_TEXT_PREVIEW = 60;
+
+/** Format ms for [TOTAL] line (e.g. 11130 → "11,130"). */
+function fmtMs(ms: number): string {
+  return Math.round(ms).toLocaleString();
+}
 
 function getLiteralStr(val: unknown): string {
   if (typeof val === 'string') return val;
@@ -22,49 +28,80 @@ function getLiteralStr(val: unknown): string {
   return '';
 }
 
-/** Return a short, human-readable summary of the UI schema for console logs. */
-function uiSchemaSummaryForLog(schema: UIResponse): string {
+/** Build a map id -> component from schema. */
+function componentMap(schema: UIResponse): Map<string, { id: string; component: unknown }> {
+  const map = new Map<string, { id: string; component: unknown }>();
+  schema.components?.forEach((c) => {
+    if (c.id != null) map.set(c.id, { id: c.id, component: c.component });
+  });
+  return map;
+}
+
+/** Return a hierarchical, structured view of the UI schema (tree from root). */
+function uiSchemaHierarchyForLog(schema: UIResponse): string {
   const intent = (schema.meta as Record<string, string> | undefined)?.intent ?? '—';
-  const root = schema.root ?? '—';
+  const rootId = schema.root ?? '';
+  const map = componentMap(schema);
   const lines: string[] = [
-    `intent: ${intent}  |  root: ${root}`,
+    `intent: ${intent}  |  root: ${rootId}`,
     '',
   ];
-  schema.components?.forEach((comp) => {
-    const cid = comp.id ?? '?';
-    const def = comp.component as unknown as Record<string, Record<string, unknown>> | undefined;
+
+  function formatComponent(id: string, indent: number): void {
+    const comp = map.get(id);
+    if (!comp) {
+      lines.push('  '.repeat(indent) + `${id}: (missing)`);
+      return;
+    }
+    const def = comp.component as Record<string, Record<string, unknown>> | undefined;
     if (!def) {
-      lines.push(`  • ${cid}: (empty)`);
+      lines.push('  '.repeat(indent) + `${id}: (empty)`);
       return;
     }
     const compType = Object.keys(def)[0] ?? '?';
-    const props = def[compType];
+    const props = def[compType] as Record<string, unknown> | undefined;
+
     if (compType === 'Text' && props?.text != null) {
       const usage = (props.usageHint as string) ?? '';
       let content = getLiteralStr(props.text);
       if (content.length > MAX_TEXT_PREVIEW) content = content.slice(0, MAX_TEXT_PREVIEW) + '…';
-      lines.push(`  • ${cid} (Text ${usage}): "${content}"`);
+      lines.push('  '.repeat(indent) + `${id} (Text ${usage}): "${content}"`);
     } else if (compType === 'Image') {
-      lines.push(`  • ${cid} (Image): [Image]`);
+      lines.push('  '.repeat(indent) + `${id} (Image): [Image]`);
     } else if (compType === 'Card' && props?.child) {
-      lines.push(`  • ${cid} (Card): child → ${props.child}`);
+      const childId = props.child as string;
+      lines.push('  '.repeat(indent) + `${id} (Card): child → ${childId}`);
+      formatComponent(childId, indent + 1);
     } else if ((compType === 'Column' || compType === 'Row') && props?.children) {
       const ch = props.children as { explicitList?: string[] } | string[];
       const ids = Array.isArray(ch) ? ch : ch?.explicitList ?? [];
-      lines.push(`  • ${cid} (${compType}): children → [${ids.join(', ')}]`);
+      lines.push('  '.repeat(indent) + `${id} (${compType}): children → [${ids.join(', ')}]`);
+      ids.forEach((childId) => formatComponent(childId, indent + 1));
     } else if (compType === 'Button' && props?.child) {
-      lines.push(`  • ${cid} (Button): child → ${props.child}`);
+      const childId = props.child as string;
+      lines.push('  '.repeat(indent) + `${id} (Button): child → ${childId}`);
+      formatComponent(childId, indent + 1);
     } else if (compType === 'List' && props?.children) {
       const ch = props.children as { explicitList?: string[] } | string[];
       const ids = Array.isArray(ch) ? ch : ch?.explicitList ?? [];
-      lines.push(`  • ${cid} (List): [${ids.join(', ')}]`);
+      lines.push('  '.repeat(indent) + `${id} (List): [${ids.join(', ')}]`);
+      ids.forEach((childId) => formatComponent(childId, indent + 1));
     } else if (compType === 'StepCarousel' && props?.steps) {
-      const steps = props.steps as string[];
-      lines.push(`  • ${cid} (StepCarousel): steps → [${steps.join(', ')}]`);
+      const steps = (props.steps as string[]) ?? [];
+      lines.push('  '.repeat(indent) + `${id} (StepCarousel): steps → [${steps.join(', ')}]`);
+      steps.forEach((stepId) => formatComponent(stepId, indent + 1));
+    } else if (compType === 'Chip' && props?.text != null) {
+      const content = getLiteralStr(props.text);
+      lines.push('  '.repeat(indent) + `${id} (Chip): "${content.slice(0, 40)}${content.length > 40 ? '…' : ''}"`);
+    } else if (compType === 'Chip' && props?.label != null) {
+      const content = getLiteralStr(props.label);
+      lines.push('  '.repeat(indent) + `${id} (Chip): "${content.slice(0, 40)}${content.length > 40 ? '…' : ''}"`);
     } else {
-      lines.push(`  • ${cid} (${compType})`);
+      lines.push('  '.repeat(indent) + `${id} (${compType})`);
     }
-  });
+  }
+
+  if (rootId) formatComponent(rootId, 0);
   return lines.join('\n');
 }
 
@@ -89,11 +126,15 @@ function App() {
   const [profileAvatar, setProfileAvatar] = useState<string>('/icons/profile1.jpg');
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
+  const hasEverHadResultRef = useRef(false);
   const navigate = useNavigate();
 
   const hasVideoSelected = !!videoUrl;
-  const hasResult = currentSchema != null;
+  /** First time: full screen. After first result, keep sidebar visible so the video never resizes back to full screen. */
+  const hasResult =
+    currentSchema != null || (isVoiceProcessing && hasEverHadResultRef.current);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,16 +154,16 @@ function App() {
   const handleAskQuestion = async (question: string) => {
     setIsLoading(true);
     setCurrentQuestion(question);
-    const tStart = performance.now();
     try {
-      // Capture current video frame
+      let step1Ms = 0;
       let videoFrame: string | null = null;
       if (videoPlayerRef.current) {
         const t0 = performance.now();
         videoFrame = await videoPlayerRef.current.captureFrame();
-        console.log(`[TIMING] App — capture frame: ${(performance.now() - t0).toFixed(0)}ms`, videoFrame ? `(Base64 length: ${videoFrame.length})` : 'null');
+        step1Ms = performance.now() - t0;
+        console.log(`[STEP] 1. Capture frame — ${formatStepMs(step1Ms)}ms`, videoFrame ? `(base64 length: ${videoFrame.length})` : 'null');
       } else {
-        console.warn('Video player ref is not available');
+        console.warn('[STEP] 1. Video player ref not available');
       }
 
       const t1 = performance.now();
@@ -133,22 +174,20 @@ function App() {
         transcriptSnippet: videoContext.transcriptSnippet,
         videoFrame: videoFrame || undefined,
       });
-      const tApi = performance.now() - t1;
-      console.log(`[TIMING] App — API (ask): ${tApi.toFixed(0)}ms`);
-
-      if (verbalSummary?.trim()) {
-        console.log('[VERBAL ANSWER] App:', verbalSummary.trim());
-      }
-
-      // Print a short, readable summary of the UI schema
+      const step2Ms = performance.now() - t1;
+      console.log(`[STEP] 2. API (ask) — ${formatStepMs(step2Ms)}ms`, {
+        components: schema.components?.length ?? 0,
+        verbalSummary: verbalSummary ? `${verbalSummary.slice(0, 50)}...` : 'none',
+      });
       console.log('='.repeat(80));
-      console.log('UI SCHEMA (summary):');
-      console.log(uiSchemaSummaryForLog(schema));
+      console.log('UI SCHEMA (structure + content):');
+      console.log(uiSchemaHierarchyForLog(schema));
       console.log('='.repeat(80));
-      
+
       setCurrentSchema(schema);
+      hasEverHadResultRef.current = true;
 
-      // Speak short verbal summary via ElevenLabs TTS (duck video volume while playing)
+      let step3Ms = 0;
       if (verbalSummary && verbalSummary.trim()) {
         try {
           const t2 = performance.now();
@@ -164,18 +203,21 @@ function App() {
           };
           setIsAiSpeaking(true);
           await audio.play();
-          console.log(`[TIMING] App — TTS fetch + play start: ${(performance.now() - t2).toFixed(0)}ms`);
+          step3Ms = performance.now() - t2;
+          console.log(`[STEP] 3. TTS fetch + play start — ${formatStepMs(step3Ms)}ms`);
         } catch (e) {
           console.warn('TTS playback failed:', e);
           setIsAiSpeaking(false);
         }
+      } else {
+        console.log('[STEP] 3. TTS — skipped (no verbalSummary)');
       }
 
-      console.log(`[TIMING] App — TOTAL (to API response): ${(performance.now() - tStart).toFixed(0)}ms`);
+      console.log('────────────────────────────────');
+      console.log(`[TOTAL] Ask (text) flow — ${fmtMs(step1Ms + step2Ms + step3Ms)}ms`);
     } catch (error) {
       console.error('Error asking question:', error);
-      // Show error state
-          setCurrentSchema({
+      setCurrentSchema({
             components: [
               {
                 id: 'error-card',
@@ -194,11 +236,62 @@ function App() {
                 component: { Text: { text: { literalString: 'Failed to get response. Please try again.' }, usageHint: 'body' } }
               }
             ],
-            root: 'error-card'
+            root: 'error-card',
+            meta: {},
           });
+      hasEverHadResultRef.current = true;
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleVoiceResult = async (result: AskWithVoiceResult, refinedQuestion: string) => {
+    console.log('Voice result received', {
+      refinedQuestion: refinedQuestion.slice(0, 60),
+      components: result.uiSchema.components?.length ?? 0,
+    });
+    console.log('='.repeat(80));
+    console.log('UI SCHEMA (structure + content):');
+    console.log(uiSchemaHierarchyForLog(result.uiSchema));
+    console.log('='.repeat(80));
+
+    setCurrentSchema(result.uiSchema);
+    setCurrentQuestion(refinedQuestion);
+    hasEverHadResultRef.current = true;
+
+    let step3Ms = 0;
+    if (result.verbalSummary?.trim()) {
+      try {
+        const t0 = performance.now();
+        const audioUrl = await getTtsAudio(result.verbalSummary.trim());
+        const audio = new Audio(audioUrl);
+        audio.onended = () => {
+          setIsAiSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        audio.onerror = () => {
+          setIsAiSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        setIsAiSpeaking(true);
+        await audio.play();
+        step3Ms = performance.now() - t0;
+        console.log(`[STEP] 3. TTS fetch + play start — ${formatStepMs(step3Ms)}ms`);
+      } catch (e) {
+        console.warn('TTS playback failed:', e);
+        setIsAiSpeaking(false);
+      }
+    } else {
+      console.log('[STEP] 3. TTS — skipped (no verbalSummary)');
+    }
+
+    const step1Ms = result.voiceTimings?.step1Ms ?? 0;
+    const step2Ms = result.voiceTimings?.step2Ms ?? 0;
+    const totalMs = step1Ms + step2Ms + step3Ms;
+    console.log('────────────────────────────────');
+    console.log(`[TOTAL] Voice flow — ${fmtMs(totalMs)}ms`);
+    setIsLoading(false);
+    setIsVoiceProcessing(false);
   };
 
   const handleSave = async (schema: UIResponse) => {
@@ -218,6 +311,7 @@ function App() {
   const handleLoadItem = (item: SavedItem) => {
     setCurrentSchema(item.uiSchema);
     setCurrentQuestion(item.question);
+    hasEverHadResultRef.current = true;
   };
 
   const handlePreloadedVideoSelect = (path: string) => {
@@ -246,7 +340,7 @@ function App() {
                             url={videoUrl}
                             onTimeUpdate={handleTimeUpdate}
                             hasResults={hasResult}
-                            volume={isUserSpeaking || isAiSpeaking ? 0.125 : 1}
+                            volume={isUserSpeaking || isAiSpeaking ? 0 : 1}
                           />
                           <ContextExtractor
                             currentTime={currentTime}
@@ -324,6 +418,26 @@ function App() {
                   onSubmit={handleAskQuestion}
                   isLoading={isLoading}
                   onListeningChange={setIsUserSpeaking}
+                  getVoiceContext={async () => {
+                    const frame = await videoPlayerRef.current?.captureFrame() ?? null;
+                    return {
+                      videoFrame: frame ?? undefined,
+                      videoTime: currentTime,
+                      videoDuration: duration,
+                      transcriptSnippet: videoContext.transcriptSnippet,
+                    };
+                  }}
+                  onVoiceResult={handleVoiceResult}
+                  onVoiceStart={() => {
+                    setCurrentQuestion('processing the question...');
+                    setCurrentSchema(null);
+                    setIsVoiceProcessing(true);
+                    setIsLoading(true);
+                  }}
+                  onVoiceError={() => {
+                    setIsLoading(false);
+                    setIsVoiceProcessing(false);
+                  }}
                 />
               )}
             </>

@@ -3,6 +3,12 @@ import { UIResponse } from '../types/schema';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
+/** Format ms for [STEP] lines: at most 1 decimal (e.g. 6.8 or 9212). */
+export function formatStepMs(ms: number): string {
+  const r = Math.round(ms * 10) / 10;
+  return r % 1 === 0 ? String(Math.round(r)) : r.toFixed(1);
+}
+
 /** Get TTS audio blob from backend (ElevenLabs). Returns object URL for playback. */
 export const getTtsAudio = async (text: string): Promise<string> => {
   const response = await axios.post<Blob>(
@@ -90,4 +96,96 @@ export const speechToText = async (
     console.error('Error transcribing speech:', error);
     throw error;
   }
+};
+
+/** Context for voice ask (video frame + time for main call). */
+export interface AskWithVoiceContext {
+  videoFrame?: string;
+  videoTime?: number;
+  videoDuration?: number;
+  transcriptSnippet?: string;
+}
+
+/** Result of ask-with-voice stream (same as AskResponse). */
+export interface AskWithVoiceResult {
+  uiSchema: UIResponse;
+  verbalSummary?: string;
+  /** Optional timings from caller (step1 = getVoiceContext, step2 = askWithVoice) for [TOTAL] Voice flow. */
+  voiceTimings?: { step1Ms: number; step2Ms: number; step2aMs?: number; step2bMs?: number };
+  /** Set by askWithVoice: streaming call 1 (transcribe + refine) vs rest (main call). */
+  step2aMs?: number;
+  step2bMs?: number;
+}
+
+/**
+ * Send audio to backend; stream transcript chunks via onChunk, then resolve with main result.
+ * Uses Gemini to transcribe+refine in one step, then runs main ask (with image) in parallel.
+ */
+export const askWithVoice = async (
+  audioData: string,
+  context: AskWithVoiceContext,
+  callbacks: { onChunk: (text: string) => void }
+): Promise<AskWithVoiceResult> => {
+  const response = await fetch(`${API_BASE_URL}/ask-with-voice`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      audio_data: audioData,
+      videoFrame: context.videoFrame,
+      videoTime: context.videoTime,
+      videoDuration: context.videoDuration,
+      transcriptSnippet: context.transcriptSnippet,
+    }),
+  });
+
+  if (!response.ok) {
+    const t = await response.text();
+    throw new Error(t || `ask-with-voice ${response.status}`);
+  }
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('No response body');
+
+  const tStreamStart = performance.now();
+  let tLastChunk: number | null = null;
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result: AskWithVoiceResult | null = null;
+  let eventType = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.startsWith('event: ')) {
+        eventType = line.slice(7).trim();
+      } else if (line.startsWith('data: ') && eventType) {
+        try {
+          const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
+          if (eventType === 'transcript_chunk' && typeof data.text === 'string') {
+            tLastChunk = performance.now();
+            callbacks.onChunk(data.text);
+          } else if (eventType === 'result') {
+            result = data as unknown as AskWithVoiceResult;
+            const tResult = performance.now();
+            const step2aMs = tLastChunk != null ? tLastChunk - tStreamStart : 0;
+            const step2bMs = tResult - (tLastChunk ?? tStreamStart);
+            result.step2aMs = step2aMs;
+            result.step2bMs = step2bMs;
+          } else if (eventType === 'error' && data.message) {
+            throw new Error(String(data.message));
+          }
+        } catch (e) {
+          if (result != null) break;
+          if (e instanceof Error && e.message !== 'Unexpected end of JSON input') throw e;
+        }
+        eventType = '';
+      }
+    }
+    if (result != null) break;
+  }
+  if (!result) throw new Error('No result from ask-with-voice');
+  return result;
 };

@@ -18,6 +18,9 @@ ENV/
 
 # Secrets / credentials (never commit)
 backend/services/credentials.json
+backend/*-*.json
+backend/*credentials*.json
+backend/*key*.json
 
 # Node
 node_modules/

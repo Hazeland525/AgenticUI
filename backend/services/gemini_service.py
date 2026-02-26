@@ -2,12 +2,18 @@
 Simplified Gemini service - only handles LLM API calls.
 Prompt building is now in prompt_builder.py.
 """
+import base64
 import os
-from typing import Optional
+from typing import Generator, Optional
 from dotenv import load_dotenv
 import google.generativeai as genai
 
 load_dotenv()
+
+AUDIO_REFINE_PROMPT = """Listen to this audio. The user is asking a question about a video.
+Transcribe and refine the speech into exactly one clear, concise question.
+Output only that question, then a newline, then exactly the three characters: ---
+Do not output anything before the question or after the ---."""
 
 
 class GeminiService:
@@ -21,7 +27,7 @@ class GeminiService:
         if not api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
     
     async def generate_content(self, prompt: str, image_data: Optional[str] = None) -> str:
         """
@@ -83,5 +89,37 @@ class GeminiService:
             print(f"Error calling Gemini API: {e}")
             import traceback
             print(f"Traceback: {traceback.format_exc()}")
+            raise
+
+    def stream_transcribe_and_refine(self, audio_base64: str) -> Generator[str, None, None]:
+        """
+        Send audio to Gemini and stream back transcribed/refined text (one question).
+        Caller should buffer and detect delimiter "\\n---" to know when the refined question is complete.
+        
+        Args:
+            audio_base64: Base64-encoded audio (e.g. WebM Opus from browser)
+        
+        Yields:
+            Text chunks from the model
+        """
+        if "," in audio_base64:
+            audio_base64 = audio_base64.split(",", 1)[1]
+        audio_bytes = base64.b64decode(audio_base64)
+        content_parts = [
+            AUDIO_REFINE_PROMPT,
+            {"mime_type": "audio/webm", "data": audio_bytes},
+        ]
+        try:
+            response = self.model.generate_content(
+                content_parts,
+                stream=True,
+            )
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as e:
+            print(f"Error streaming from Gemini (audio): {e}")
+            import traceback
+            print(traceback.format_exc())
             raise
 

@@ -1,47 +1,102 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useVoiceInputGoogleCloud } from '../hooks/useVoiceInputGoogleCloud';
-import { refineSpeech } from '../services/agentService';
+import { askWithVoice, refineSpeech, formatStepMs } from '../services/agentService';
+import type { AskWithVoiceContext, AskWithVoiceResult } from '../services/agentService';
 import './QuestionInput.css';
 
 interface QuestionInputProps {
   onSubmit: (question: string) => void;
   isLoading?: boolean;
   onListeningChange?: (isListening: boolean) => void;
+  /** When set, voice uses Gemini ask-with-voice (stream transcript + main call). */
+  getVoiceContext?: () => Promise<AskWithVoiceContext>;
+  onVoiceResult?: (result: AskWithVoiceResult, refinedQuestion: string) => void;
+  onVoiceStart?: () => void;
+  onVoiceError?: () => void;
 }
 
-export const QuestionInput: React.FC<QuestionInputProps> = ({ onSubmit, isLoading = false, onListeningChange }) => {
+export const QuestionInput: React.FC<QuestionInputProps> = ({
+  onSubmit,
+  isLoading = false,
+  onListeningChange,
+  getVoiceContext,
+  onVoiceResult,
+  onVoiceStart,
+  onVoiceError,
+}) => {
   const [question, setQuestion] = useState('');
   const [isRefining, setIsRefining] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const streamingRef = useRef('');
 
   const handleTranscript = async (rawSpeech: string) => {
-    if (!rawSpeech.trim()) {
-      return;
-    }
-    
-    console.log('[QuestionInput] Processing raw speech:', rawSpeech);
+    if (!rawSpeech.trim()) return;
     setIsRefining(true);
     try {
       const t0 = performance.now();
       const refinedQuestion = await refineSpeech(rawSpeech);
-      console.log(`[TIMING] Question Input — interpretation (refine): ${(performance.now() - t0).toFixed(0)}ms`);
-      console.log('[QuestionInput] Refined speech:', refinedQuestion);
+      const step1Ms = performance.now() - t0;
+      console.log(`[STEP] 1. refineSpeech — ${formatStepMs(step1Ms)}ms`, { refined: refinedQuestion.slice(0, 60) });
       setQuestion(refinedQuestion);
-      // Auto-submit the refined question
       if (refinedQuestion.trim() && !isLoading) {
         onSubmit(refinedQuestion.trim());
         setQuestion('');
       }
+      console.log('────────────────────────────────');
+      console.log(`[TOTAL] Legacy voice — ${Math.round(step1Ms).toLocaleString()}ms`);
     } catch (error) {
-      console.error('Error refining speech:', error);
-      // Fallback: use raw speech
+      console.error('Legacy voice failed:', error);
       setQuestion(rawSpeech);
     } finally {
       setIsRefining(false);
     }
   };
 
+  const handleVoiceAudio = async (base64Audio: string) => {
+    if (!getVoiceContext || !onVoiceResult) return;
+    onVoiceStart?.();
+    streamingRef.current = '';
+    setStreamingText('');
+    try {
+      const t0 = performance.now();
+      const context = await getVoiceContext();
+      const step1Ms = performance.now() - t0;
+      console.log(`[STEP] 1. getVoiceContext — ${formatStepMs(step1Ms)}ms`);
+
+      const t1 = performance.now();
+      const result = await askWithVoice(base64Audio, context, {
+        onChunk: (text) => {
+          streamingRef.current += text;
+          setStreamingText(streamingRef.current.replace(/\n?---\s*$/, '').trimEnd());
+        },
+      });
+      const step2Ms = performance.now() - t1;
+      if (result.step2aMs != null && result.step2bMs != null) {
+        console.log(`[STEP] 2a. STT streaming — ${formatStepMs(result.step2aMs)}ms`);
+        console.log(`[STEP] 2b. Main call (stream) — ${formatStepMs(result.step2bMs)}ms`);
+      }
+      console.log(`[STEP] 2. STT + main call (stream) — ${formatStepMs(step2Ms)}ms`);
+
+      const refined = streamingRef.current.replace(/\n?---\s*$/, '').trim();
+      result.voiceTimings = {
+        step1Ms,
+        step2Ms,
+        step2aMs: result.step2aMs,
+        step2bMs: result.step2bMs,
+      };
+      onVoiceResult(result, refined);
+      streamingRef.current = '';
+      setStreamingText('');
+    } catch (error) {
+      console.error('Voice flow failed:', error);
+      setStreamingText('');
+      onVoiceError?.();
+    }
+  };
+
   const { isListening } = useVoiceInputGoogleCloud({
-    onTranscript: handleTranscript,
+    onTranscript: getVoiceContext && onVoiceResult ? undefined : handleTranscript,
+    onVoiceAudio: getVoiceContext && onVoiceResult ? handleVoiceAudio : undefined,
     onError: (error) => console.error('Voice input error:', error),
     onListeningChange,
   });
@@ -73,7 +128,7 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({ onSubmit, isLoadin
             type="text"
             className="question-input-field"
             placeholder="Ask a question about the video... (Hold 'S' to speak)"
-            value={question}
+            value={streamingText || question}
             onChange={(e) => setQuestion(e.target.value)}
             disabled={isLoading || isRefining}
           />

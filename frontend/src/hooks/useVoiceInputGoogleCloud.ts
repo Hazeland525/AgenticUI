@@ -2,12 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { speechToText } from '../services/agentService';
 
 interface UseVoiceInputOptions {
-  onTranscript: (text: string) => void;
+  /** When user finishes speaking, call with transcribed text (legacy: STT + refine). */
+  onTranscript?: (text: string) => void;
+  /** When provided, voice sends raw base64 audio to this callback instead of STT (e.g. for ask-with-voice). */
+  onVoiceAudio?: (base64Audio: string) => void;
   onError?: (error: string) => void;
   onListeningChange?: (isListening: boolean) => void;
 }
 
-export const useVoiceInputGoogleCloud = ({ onTranscript, onError, onListeningChange }: UseVoiceInputOptions) => {
+export const useVoiceInputGoogleCloud = ({ onTranscript, onVoiceAudio, onError, onListeningChange }: UseVoiceInputOptions) => {
   const [isListening, setIsListening] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -109,14 +112,16 @@ export const useVoiceInputGoogleCloud = ({ onTranscript, onError, onListeningCha
               reader.onloadend = async () => {
                 try {
                   const base64Audio = (reader.result as string).split(',')[1]; // Remove data:audio/webm;base64, prefix
-                  
-                  const t0 = performance.now();
-                  const transcript = await speechToText(base64Audio);
-                  console.log(`[TIMING] Question Input — speech recognition: ${(performance.now() - t0).toFixed(0)}ms`);
-                  
-                  if (transcript && transcript.trim()) {
-                    console.log('[Voice Input] Raw speech captured:', transcript);
-                    onTranscript(transcript);
+                  if (onVoiceAudio) {
+                    onVoiceAudio(base64Audio);
+                  } else if (onTranscript) {
+                    const t0 = performance.now();
+                    const transcript = await speechToText(base64Audio);
+                    console.log(`[TIMING] Question Input — speech recognition: ${(performance.now() - t0).toFixed(0)}ms`);
+                    if (transcript && transcript.trim()) {
+                      console.log('[Voice Input] Raw speech captured:', transcript);
+                      onTranscript(transcript);
+                    }
                   }
                 } catch (error) {
                   console.error('Error transcribing speech:', error);

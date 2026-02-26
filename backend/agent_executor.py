@@ -7,6 +7,7 @@ import json
 import logging
 import time
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 from agent import Agent
@@ -72,127 +73,258 @@ class AskResponse(BaseModel):
     verbalSummary: Optional[str] = None  # Short summary for TTS only, not displayed in UI
 
 
+async def _execute_ask(
+    question: str,
+    video_frame: Optional[str] = None,
+    video_time: Optional[float] = None,
+    video_duration: Optional[float] = None,
+    transcript_snippet: Optional[str] = None,
+) -> AskResponse:
+    """Shared logic: generate UI schema, image search, verbal summary, return AskResponse."""
+    t_start = time.perf_counter()
+    agent = get_agent()
+    t0 = time.perf_counter()
+    ui_response = await agent.generate_ui_schema(
+        question=question,
+        video_time=video_time,
+        video_duration=video_duration,
+        transcript_snippet=transcript_snippet,
+        video_frame=video_frame,
+    )
+    t_schema = time.perf_counter() - t0
+    logger.info(f"[TIMING] _execute_ask — generate_ui_schema: {t_schema:.2f}s")
+    ui_schema_dict = ui_response.model_dump()
+    answer_context = _extract_answer_context(ui_schema_dict)
+    logger.info(f"Extracted answer context: {answer_context[:200]}...")
+    image_search = get_image_search_service()
+    gemini = get_gemini_service()
+    logger.info(f"[IMAGE SEARCH] question={question!r} answer_context={answer_context[:150]!r}...")
+    t_parallel_start = time.perf_counter()
+
+    async def run_image_search():
+        return await image_search.search_image(question=question, answer_context=answer_context)
+
+    async def run_verbal_summary():
+        if not answer_context or not answer_context.strip():
+            return None
+        try:
+            prompt = (
+                f"The user asked: \"{question}\"\n\n"
+                f"Here is the full answer content:\n{answer_context[:3000]}\n\n"
+                "In 1-2 short, conversational sentences, summarize this for a quick voice-over. "
+                "Do not read the full answer. Reply with only the spoken summary, no quotes or labels."
+            )
+            out = await gemini.generate_text(prompt)
+            return out.strip() if out else None
+        except Exception as e:
+            logger.warning(f"Failed to generate verbal summary: {e}")
+            return None
+
+    selected_image, verbal_summary = await asyncio.gather(run_image_search(), run_verbal_summary())
+    t_parallel = time.perf_counter() - t_parallel_start
+    logger.info(f"[TIMING] _execute_ask — image_search + verbal_summary: {t_parallel:.2f}s")
+    if verbal_summary:
+        logger.info(f"[VERBAL ANSWER] {verbal_summary!r}")
+    replaced_any_image = False
+    if selected_image:
+        logger.info(f"[IMAGE SEARCH] result=OK id={selected_image['id']!r} category={selected_image['category']!r}")
+        image_data_url = image_search.get_image_as_data_url(selected_image["path"])
+        if image_data_url:
+            for component in ui_schema_dict.get("components", []):
+                comp_def = component.get("component", {})
+                if "Image" not in comp_def:
+                    continue
+                image_props = comp_def["Image"]
+                url_value = image_props.get("url") or image_props.get("imageUrl")
+                if isinstance(url_value, dict) and "literalString" in url_value:
+                    url_str = url_value["literalString"]
+                elif isinstance(url_value, str):
+                    url_str = url_value
+                else:
+                    continue
+                if not (any(p in url_str for p in ["example.com", "youtube.com", "placeholder", "VIDEO_FRAME_PLACEHOLDER", "imgur.com"])
+                        or url_str.startswith("http://") or url_str.startswith("https://")):
+                    continue
+                image_props["url"] = {"literalString": image_data_url}
+                if "imageUrl" in image_props:
+                    del image_props["imageUrl"]
+                replaced_any_image = True
+        else:
+            logger.warning(f"Failed to load image file: {selected_image['path']}")
+        # If we have a matched image but the LLM didn't include any Image component, inject a hero
+        if image_data_url and not replaced_any_image:
+            _inject_hero_image(ui_schema_dict, image_data_url)
+    else:
+        logger.warning("[IMAGE SEARCH] result=null")
+        _remove_placeholder_images(ui_schema_dict)
+    _truncate_schema_body_text(ui_schema_dict)
+    t_total = time.perf_counter() - t_start
+    logger.info(f"[TIMING] _execute_ask — TOTAL: {t_total:.2f}s")
+    return AskResponse(uiSchema=ui_schema_dict, verbalSummary=verbal_summary)
+
+
 @router.post("/ask", response_model=AskResponse)
 async def ask_question(request: AskRequest):
-    """
-    Handle question requests and return UI schema.
-    Similar to A2UI's agent_executor pattern.
-    """
+    """Handle question requests and return UI schema."""
     try:
-        t_start = time.perf_counter()
-        agent = get_agent()
-        t0 = time.perf_counter()
-        ui_response = await agent.generate_ui_schema(
+        return await _execute_ask(
             question=request.question,
+            video_frame=request.videoFrame,
             video_time=request.videoTime,
             video_duration=request.videoDuration,
             transcript_snippet=request.transcriptSnippet,
-            video_frame=request.videoFrame
         )
-        t_schema = time.perf_counter() - t0
-        logger.info(f"[TIMING] App/ask — generate_ui_schema: {t_schema:.2f}s")
-        
-        # Convert Pydantic model to dict for JSON response
-        ui_schema_dict = ui_response.model_dump()
-        
-        # Extract answer context from the UI schema (text content)
-        answer_context = _extract_answer_context(ui_schema_dict)
-        logger.info(f"Extracted answer context: {answer_context[:200]}...")
-        
-        # Run image search and verbal summary in parallel
-        image_search = get_image_search_service()
-        gemini = get_gemini_service()
-        logger.info(f"[IMAGE SEARCH] request question={request.question!r} answer_context={answer_context[:150]!r}...")
-        t_parallel_start = time.perf_counter()
-
-        async def run_image_search():
-            return await image_search.search_image(
-                question=request.question,
-                answer_context=answer_context
-            )
-
-        async def run_verbal_summary():
-            if not answer_context or not answer_context.strip():
-                return None
-            try:
-                prompt = (
-                    f"The user asked: \"{request.question}\"\n\n"
-                    f"Here is the full answer content:\n{answer_context[:3000]}\n\n"
-                    "In 1-2 short, conversational sentences, summarize this for a quick voice-over. "
-                    "Do not read the full answer. Reply with only the spoken summary, no quotes or labels."
-                )
-                out = await gemini.generate_text(prompt)
-                return out.strip() if out else None
-            except Exception as e:
-                logger.warning(f"Failed to generate verbal summary: {e}")
-                return None
-
-        selected_image, verbal_summary = await asyncio.gather(run_image_search(), run_verbal_summary())
-        t_parallel = time.perf_counter() - t_parallel_start
-        logger.info(f"[TIMING] App/ask — image_search + verbal_summary (parallel): {t_parallel:.2f}s")
-        if verbal_summary:
-            logger.info(f"[VERBAL ANSWER] App: {verbal_summary!r}")
-        
-        if selected_image:
-            logger.info(f"[IMAGE SEARCH] result=OK id={selected_image['id']!r} category={selected_image['category']!r} path={selected_image.get('path', '')!r}")
-            logger.info(f"Selected image: {selected_image['id']} from category {selected_image['category']}")
-            logger.info(f"Reasoning: {selected_image.get('reasoning', 'N/A')}")
-            
-            # Convert image to data URL
-            image_data_url = image_search.get_image_as_data_url(selected_image["path"])
-            
-            if image_data_url:
-                # Replace placeholder image URLs in Image components with the selected image
-                for component in ui_schema_dict.get("components", []):
-                    comp_def = component.get("component", {})
-                    # Check if it's an Image component
-                    if "Image" not in comp_def:
-                        continue
-                    image_props = comp_def["Image"]
-                    # LLM may output "url" or "imageUrl" (camelCase)
-                    url_value = image_props.get("url") or image_props.get("imageUrl")
-                    # Normalize: url can be string or { "literalString": "..." }
-                    if isinstance(url_value, dict) and "literalString" in url_value:
-                        url_str = url_value["literalString"]
-                    elif isinstance(url_value, str):
-                        url_str = url_value
-                    else:
-                        continue
-                    # Check if it's a placeholder URL
-                    if not (any(p in url_str for p in ["example.com", "youtube.com", "placeholder", "VIDEO_FRAME_PLACEHOLDER", "imgur.com"])
-                            or url_str.startswith("http://") or url_str.startswith("https://")):
-                        continue
-                    logger.info(f"Found Image component {component.get('id')} with URL: {url_str[:50]}...")
-                    image_props["url"] = {"literalString": image_data_url}
-                    if "imageUrl" in image_props:
-                        del image_props["imageUrl"]
-                    logger.info(f"✓ Replaced placeholder image URL with dataset image '{selected_image['id']}' for component {component.get('id')}")
-            else:
-                logger.warning(f"Failed to load image file: {selected_image['path']}")
-        else:
-            logger.warning("[IMAGE SEARCH] result=null — no image found in dataset; hero will keep placeholder and be removed by _remove_placeholder_images")
-            logger.warning("No appropriate image found in dataset")
-            # Remove placeholder Image components so we don't show a broken hero
-            _remove_placeholder_images(ui_schema_dict)
-        
-        # Truncate body text in UI schema to max ~2 lines so answers stay short on the UI
-        _truncate_schema_body_text(ui_schema_dict)
-
-        t_total = time.perf_counter() - t_start
-        logger.info(f"[TIMING] App/ask — TOTAL (backend): {t_total:.2f}s")
-
-        # Print a short, readable summary of the UI schema
-        logger.info("=" * 80)
-        logger.info("UI SCHEMA (summary):")
-        logger.info(_ui_schema_summary_for_log(ui_schema_dict))
-        logger.info("=" * 80)
-        
-        return AskResponse(uiSchema=ui_schema_dict, verbalSummary=verbal_summary)
     except Exception as e:
         logger.error(f"Error in /ask endpoint: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class AskWithVoiceRequest(BaseModel):
+    """Request model for /ask-with-voice endpoint (SSE stream)."""
+    audio_data: str  # Base64 encoded audio (WebM Opus)
+    videoFrame: Optional[str] = None
+    videoTime: Optional[float] = None
+    videoDuration: Optional[float] = None
+    transcriptSnippet: Optional[str] = None
+
+
+def _sse_message(event: str, data: dict) -> str:
+    """Format one SSE message (event + data line)."""
+    payload = json.dumps(data, ensure_ascii=False)
+    return f"event: {event}\ndata: {payload}\n\n"
+
+
+@router.post("/ask-with-voice")
+async def ask_with_voice(request: AskWithVoiceRequest):
+    """
+    Audio → Gemini Call 1 (stream transcribe+refine) → as soon as refined question is available,
+    fire Call 2 (main ask with image) in parallel. Stream transcript chunks via SSE, then send result.
+    """
+    async def event_stream():
+        queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
+        refined_question = None
+        call2_started = False
+
+        def run_stream():
+            try:
+                gemini = get_gemini_service()
+                for chunk in gemini.stream_transcribe_and_refine(request.audio_data):
+                    loop.call_soon_threadsafe(queue.put_nowait, ("chunk", chunk))
+            except Exception as e:
+                logger.exception("ask-with-voice stream failed")
+                loop.call_soon_threadsafe(queue.put_nowait, ("error", str(e)))
+            loop.call_soon_threadsafe(queue.put_nowait, ("stream_done", None))
+
+        async def run_call2():
+            nonlocal refined_question
+            try:
+                result = await _execute_ask(
+                    question=refined_question or "",
+                    video_frame=request.videoFrame,
+                    video_time=request.videoTime,
+                    video_duration=request.videoDuration,
+                    transcript_snippet=request.transcriptSnippet,
+                )
+                loop.call_soon_threadsafe(queue.put_nowait, ("result", result.model_dump()))
+            except Exception as e:
+                logger.exception("ask-with-voice call2 failed")
+                loop.call_soon_threadsafe(queue.put_nowait, ("error", str(e)))
+
+        loop.run_in_executor(None, run_stream)
+        buffer = ""
+        try:
+            while True:
+                event_type, payload = await queue.get()
+                if event_type == "chunk":
+                    buffer += payload
+                    yield _sse_message("transcript_chunk", {"text": payload})
+                    if "\n---" in buffer and not call2_started:
+                        call2_started = True
+                        refined_question = buffer.split("\n---")[0].strip()
+                        if refined_question:
+                            asyncio.create_task(run_call2())
+                        else:
+                            loop.call_soon_threadsafe(
+                                queue.put_nowait,
+                                ("error", "Empty refined question"),
+                            )
+                elif event_type == "stream_done":
+                    if not call2_started:
+                        refined_question = (buffer.strip().split("\n---")[0].strip() or buffer.strip()) if buffer.strip() else ""
+                        if refined_question:
+                            call2_started = True
+                            asyncio.create_task(run_call2())
+                        else:
+                            loop.call_soon_threadsafe(queue.put_nowait, ("error", "No question from audio"))
+                    break
+                elif event_type == "result":
+                    yield _sse_message("result", payload)
+                    return
+                elif event_type == "error":
+                    yield _sse_message("error", {"message": payload})
+                    return
+            while True:
+                event_type, payload = await queue.get()
+                if event_type == "result":
+                    yield _sse_message("result", payload)
+                    return
+                if event_type == "error":
+                    yield _sse_message("error", {"message": payload})
+                    return
+        except asyncio.CancelledError:
+            raise
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+def _inject_hero_image(ui_schema_dict: dict, image_data_url: str) -> None:
+    """
+    When image search found a match but the LLM didn't include any Image component,
+    inject a hero Image so the frontend can show it as the sidebar background.
+    """
+    hero_id = "hero-image"
+    components = ui_schema_dict.get("components", [])
+    root_id = ui_schema_dict.get("root")
+    if not root_id:
+        logger.warning("[IMAGE SEARCH] Cannot inject hero: no root in schema")
+        return
+    # Add the hero Image component
+    components.append({
+        "id": hero_id,
+        "component": {
+            "Image": {
+                "url": {"literalString": image_data_url},
+                "usageHint": "hero",
+            }
+        },
+    })
+    # Prepend hero to root's children so it's first (sidebar uses first hero for background)
+    for comp in components:
+        if comp.get("id") != root_id:
+            continue
+        comp_def = comp.get("component", {})
+        for key in ("Column", "Row"):
+            if key not in comp_def:
+                continue
+            children = comp_def[key].get("children")
+            if isinstance(children, dict) and "explicitList" in children:
+                children["explicitList"].insert(0, hero_id)
+                logger.info(f"[IMAGE SEARCH] Injected hero image into root {root_id!r}")
+                return
+            if isinstance(children, list):
+                comp_def[key]["children"] = {"explicitList": [hero_id] + children}
+                logger.info(f"[IMAGE SEARCH] Injected hero image into root {root_id!r}")
+                return
+        break
+    else:
+        logger.warning(f"[IMAGE SEARCH] Cannot inject hero: root component {root_id!r} not found or has no children")
 
 
 def _truncate_schema_body_text(ui_schema_dict: dict, max_chars: int = 200) -> None:

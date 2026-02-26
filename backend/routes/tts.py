@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Default voice: Rachel (change via ELEVENLABS_VOICE_ID in .env)
-DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
+DEFAULT_VOICE_ID = "tnSpp4vdxKPjI9w0GnoV"
 ELEVENLABS_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 
 
