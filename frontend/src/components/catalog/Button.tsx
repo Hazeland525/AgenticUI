@@ -10,6 +10,7 @@ interface ButtonProps {
   };
   childComponent?: React.ReactNode; // The actual child component to render
   onSave?: () => void;
+  onClick?: () => void; // Optional custom click (e.g. mute toggle); takes precedence over onSave when present
   icon?: string; // Icon name or SVG path
 }
 
@@ -29,6 +30,7 @@ export const Button: React.FC<ButtonProps> = ({
   action, 
   childComponent,
   onSave,
+  onClick,
   icon
 }) => {
   const handleClick = () => {
@@ -36,7 +38,9 @@ export const Button: React.FC<ButtonProps> = ({
       console.log('Button action:', action);
       // In full implementation, would dispatch action event
     }
-    if (onSave) {
+    if (onClick) {
+      onClick();
+    } else if (onSave) {
       onSave();
     }
   };
@@ -58,7 +62,7 @@ export const Button: React.FC<ButtonProps> = ({
     return null;
   };
 
-  // Check if this is an action button (has icon and child text is "Save", "Speak", "Phone", or empty)
+  // Check if this is an action button (has icon and child text is "Save", "Mute", or empty)
   const childText = childComponent && typeof childComponent === 'object' && React.isValidElement(childComponent)
     ? (childComponent.props?.text?.literalString || childComponent.props?.text || '')
     : (typeof childComponent === 'string' ? childComponent : '');
@@ -66,7 +70,7 @@ export const Button: React.FC<ButtonProps> = ({
   const isActionButton = icon && (
     !childText || 
     childText.trim() === '' || 
-    ['Save', 'Speak', 'Phone'].includes(childText.trim())
+    ['Save', 'Mute'].includes(childText.trim())
   );
 
   return (

@@ -90,7 +90,7 @@ You MUST compose UI using primitive components. Build layouts by combining:
 
 **Interactive Components:**
 - Button: Clickable button with action support
-  - Use `icon` property to add icon to buttons (e.g., "plus", "speaker", "screen")
+  - Use `icon` property to add icon to buttons (e.g., "plus", "speaker")
   - Icons are loaded from /icons/ directory
 
 --- SEMANTIC MODULES (PREFERRED COMPOSITION PATTERNS) ---
@@ -173,8 +173,8 @@ Column (root)
 
 **Layout Requirements:**
 - Root MUST be a Column (for sidebar context)
-- Actions: Always include a Row of three icon buttons as the LAST item in the root Column:
-  - Save (icon="plus"), AI Speak (icon="speaker"), Send to Phone (icon="screen")
+- Actions: Always include a Row of two icon buttons as the LAST item in the root Column:
+  - Save (icon="plus"), AI Mute (icon="speaker")
 - Do NOT use Row layout that places actions beside content
 - UI must have at least 2 content sections (e.g., header + details; step + ingredients; filters + list)
 - Keep total components <= 35 unless absolutely necessary
@@ -225,7 +225,7 @@ Column (root)
                         },
                         {
                             "id": "actions-row",
-                            "component": {"Row": {"children": {"explicitList": ["save-button", "speak-button", "phone-button"]}}}
+                            "component": {"Row": {"children": {"explicitList": ["save-button", "mute-button"]}}}
                         },
                         {
                             "id": "save-button",
@@ -236,20 +236,12 @@ Column (root)
                             "component": {"Text": {"text": {"literalString": "Save"}, "usageHint": "body"}}
                         },
                         {
-                            "id": "speak-button",
-                            "component": {"Button": {"child": "speak-text", "icon": "speaker"}}
+                            "id": "mute-button",
+                            "component": {"Button": {"child": "mute-text", "icon": "speaker"}}
                         },
                         {
-                            "id": "speak-text",
-                            "component": {"Text": {"text": {"literalString": "Speak"}, "usageHint": "body"}}
-                        },
-                        {
-                            "id": "phone-button",
-                            "component": {"Button": {"child": "phone-text", "icon": "screen"}}
-                        },
-                        {
-                            "id": "phone-text",
-                            "component": {"Text": {"text": {"literalString": "Phone"}, "usageHint": "body"}}
+                            "id": "mute-text",
+                            "component": {"Text": {"text": {"literalString": "Mute"}, "usageHint": "body"}}
                         }
                     ],
                     "root": "main-column"
@@ -369,7 +361,7 @@ Column (root)
                         },
                         {
                             "id": "actions-row",
-                            "component": {"Row": {"children": {"explicitList": ["save-button", "speak-button", "phone-button"]}}}
+                            "component": {"Row": {"children": {"explicitList": ["save-button", "mute-button"]}}}
                         },
                         {
                             "id": "save-button",
@@ -380,20 +372,12 @@ Column (root)
                             "component": {"Text": {"text": {"literalString": "Save"}, "usageHint": "body"}}
                         },
                         {
-                            "id": "speak-button",
-                            "component": {"Button": {"child": "speak-text", "icon": "speaker"}}
+                            "id": "mute-button",
+                            "component": {"Button": {"child": "mute-text", "icon": "speaker"}}
                         },
                         {
-                            "id": "speak-text",
-                            "component": {"Text": {"text": {"literalString": "Speak"}, "usageHint": "body"}}
-                        },
-                        {
-                            "id": "phone-button",
-                            "component": {"Button": {"child": "phone-text", "icon": "screen"}}
-                        },
-                        {
-                            "id": "phone-text",
-                            "component": {"Text": {"text": {"literalString": "Phone"}, "usageHint": "body"}}
+                            "id": "mute-text",
+                            "component": {"Text": {"text": {"literalString": "Mute"}, "usageHint": "body"}}
                         }
                     ],
                     "root": "main-column"
@@ -425,14 +409,6 @@ Column (root)
                         },
                         {
                             "id": "item1-content",
-                            "component": {"Row": {"children": {"explicitList": ["item1-image", "item1-info"]}}}
-                        },
-                        {
-                            "id": "item1-image",
-                            "component": {"Image": {"url": {"literalString": "https://example.com/item1.jpg"}, "usageHint": "thumbnail"}}
-                        },
-                        {
-                            "id": "item1-info",
                             "component": {"Column": {"children": {"explicitList": ["item1-name", "item1-subtitle", "item1-trailing"]}}}
                         },
                         {
@@ -453,14 +429,6 @@ Column (root)
                         },
                         {
                             "id": "item2-content",
-                            "component": {"Row": {"children": {"explicitList": ["item2-image", "item2-info"]}}}
-                        },
-                        {
-                            "id": "item2-image",
-                            "component": {"Image": {"url": {"literalString": "https://example.com/item2.jpg"}, "usageHint": "thumbnail"}}
-                        },
-                        {
-                            "id": "item2-info",
                             "component": {"Column": {"children": {"explicitList": ["item2-name", "item2-subtitle", "item2-trailing"]}}}
                         },
                         {
@@ -481,14 +449,6 @@ Column (root)
                         },
                         {
                             "id": "item3-content",
-                            "component": {"Row": {"children": {"explicitList": ["item3-image", "item3-info"]}}}
-                        },
-                        {
-                            "id": "item3-image",
-                            "component": {"Image": {"url": {"literalString": "https://example.com/item3.jpg"}, "usageHint": "thumbnail"}}
-                        },
-                        {
-                            "id": "item3-info",
                             "component": {"Column": {"children": {"explicitList": ["item3-name", "item3-subtitle", "item3-trailing"]}}}
                         },
                         {
@@ -505,7 +465,7 @@ Column (root)
                         },
                         {
                             "id": "actions-row",
-                            "component": {"Row": {"children": {"explicitList": ["save-button", "speak-button", "phone-button"]}}}
+                            "component": {"Row": {"children": {"explicitList": ["save-button", "mute-button"]}}}
                         },
                         {
                             "id": "save-button",
@@ -516,20 +476,12 @@ Column (root)
                             "component": {"Text": {"text": {"literalString": "Save"}, "usageHint": "body"}}
                         },
                         {
-                            "id": "speak-button",
-                            "component": {"Button": {"child": "speak-text", "icon": "speaker"}}
+                            "id": "mute-button",
+                            "component": {"Button": {"child": "mute-text", "icon": "speaker"}}
                         },
                         {
-                            "id": "speak-text",
-                            "component": {"Text": {"text": {"literalString": "Speak"}, "usageHint": "body"}}
-                        },
-                        {
-                            "id": "phone-button",
-                            "component": {"Button": {"child": "phone-text", "icon": "screen"}}
-                        },
-                        {
-                            "id": "phone-text",
-                            "component": {"Text": {"text": {"literalString": "Phone"}, "usageHint": "body"}}
+                            "id": "mute-text",
+                            "component": {"Text": {"text": {"literalString": "Mute"}, "usageHint": "body"}}
                         }
                     ],
                     "root": "main-column"
@@ -609,7 +561,7 @@ Column (root)
                         },
                         {
                             "id": "actions-row",
-                            "component": {"Row": {"children": {"explicitList": ["save-button", "speak-button", "phone-button"]}}}
+                            "component": {"Row": {"children": {"explicitList": ["save-button", "mute-button"]}}}
                         },
                         {
                             "id": "save-button",
@@ -620,20 +572,12 @@ Column (root)
                             "component": {"Text": {"text": {"literalString": "Save"}, "usageHint": "body"}}
                         },
                         {
-                            "id": "speak-button",
-                            "component": {"Button": {"child": "speak-text", "icon": "speaker"}}
+                            "id": "mute-button",
+                            "component": {"Button": {"child": "mute-text", "icon": "speaker"}}
                         },
                         {
-                            "id": "speak-text",
-                            "component": {"Text": {"text": {"literalString": "Speak"}, "usageHint": "body"}}
-                        },
-                        {
-                            "id": "phone-button",
-                            "component": {"Button": {"child": "phone-text", "icon": "screen"}}
-                        },
-                        {
-                            "id": "phone-text",
-                            "component": {"Text": {"text": {"literalString": "Phone"}, "usageHint": "body"}}
+                            "id": "mute-text",
+                            "component": {"Text": {"text": {"literalString": "Mute"}, "usageHint": "body"}}
                         }
                     ],
                     "root": "main-column"
@@ -677,7 +621,7 @@ Column (root)
                         },
                         {
                             "id": "actions-row",
-                            "component": {"Row": {"children": {"explicitList": ["save-button", "speak-button", "phone-button"]}}}
+                            "component": {"Row": {"children": {"explicitList": ["save-button", "mute-button"]}}}
                         },
                         {
                             "id": "save-button",
@@ -688,20 +632,12 @@ Column (root)
                             "component": {"Text": {"text": {"literalString": "Save"}, "usageHint": "body"}}
                         },
                         {
-                            "id": "speak-button",
-                            "component": {"Button": {"child": "speak-text", "icon": "speaker"}}
+                            "id": "mute-button",
+                            "component": {"Button": {"child": "mute-text", "icon": "speaker"}}
                         },
                         {
-                            "id": "speak-text",
-                            "component": {"Text": {"text": {"literalString": "Speak"}, "usageHint": "body"}}
-                        },
-                        {
-                            "id": "phone-button",
-                            "component": {"Button": {"child": "phone-text", "icon": "screen"}}
-                        },
-                        {
-                            "id": "phone-text",
-                            "component": {"Text": {"text": {"literalString": "Phone"}, "usageHint": "body"}}
+                            "id": "mute-text",
+                            "component": {"Text": {"text": {"literalString": "Mute"}, "usageHint": "body"}}
                         }
                     ],
                     "root": "main-column"
@@ -797,10 +733,9 @@ SIMPLE_IDENTIFICATION REQUIRED BLOCKS:
   - Keep descriptions concise and scannable
   - Example: "A thistle-like edible flower bud.", "Native to the Mediterranean region."
 - NO Chips - use text labels only for metadata
-- Actions: Row of three icon buttons at the bottom - MUST be last item in root Column:
+- Actions: Row of two icon buttons at the bottom - MUST be last item in root Column:
   - Save button (icon="plus")
-  - AI Speak button (icon="speaker")
-  - Send to Phone button (icon="screen")
+  - AI Mute button (icon="speaker")
 
 ENTITY_DETAIL REQUIRED BLOCKS:
 - Title (Text usageHint="h1") for main answer
@@ -814,10 +749,9 @@ ENTITY_DETAIL REQUIRED BLOCKS:
 - NO hero images - focus on structured information
 - NO Chips - use text labels only for metadata (if needed, use label under title instead of chips)
 OPTIONAL ELEMENTS:
-- Actions: Row of three icon buttons at the bottom - MUST be last item in root Column:
+- Actions: Row of two icon buttons at the bottom - MUST be last item in root Column:
   - Save button (icon="plus")
-  - AI Speak button (icon="speaker")
-  - Send to Phone button (icon="screen")
+  - AI Mute button (icon="speaker")
 
 STEP_BY_STEP REQUIRED BLOCKS:
 - Title (Text usageHint="h1")
@@ -832,23 +766,20 @@ STEP_BY_STEP REQUIRED BLOCKS:
   - Structure: Card containing Column with Text (h2), Text (body) - NO Progress indicator (StepCarousel provides progress dots)
   - StepCarousel will handle navigation (left/right arrows) and progress dots
   - Example: {{"StepCarousel": {{"steps": ["step1-card", "step2-card", "step3-card"]}}}}
-- Actions: Row of three icon buttons at the bottom - MUST be last item in root Column:
+- Actions: Row of two icon buttons at the bottom - MUST be last item in root Column:
   - Save button (icon="plus")
-  - AI Speak button (icon="speaker")
-  - Send to Phone button (icon="screen")
+  - AI Mute button (icon="speaker")
 
 ITEM_LISTING REQUIRED BLOCKS:
 - Title (Text usageHint="h1")
 - NO hero image at the top (do not include a large image above the list)
 - List of items (List OR Column of Cards) each with:
-  - thumbnail image on the left (Image usageHint="thumbnail")
-  - Row layout: image on left, info Column on right
   - title (Text usageHint="h2"), subtitle (Text usageHint="body"), trailing (Text usageHint="label" for distance/price/rating)
+  - Do NOT include thumbnail images for list items (text-only items keep the screen less busy)
   - NO action buttons (just display information)
-- Actions: Row of three icon buttons at the bottom - MUST be last item in root Column:
+- Actions: Row of two icon buttons at the bottom - MUST be last item in root Column:
   - Save button (icon="plus")
-  - AI Speak button (icon="speaker")
-  - Send to Phone button (icon="screen")
+  - AI Mute button (icon="speaker")
 
 This keeps structure "systematic" but not templated. Variation is required.
 """
@@ -906,7 +837,7 @@ Your goal is to analyze the user's question and generate the most appropriate UI
 
 9. Use Image components with semantic usageHint:
    - hero: Main subject images - used for sidebar background (will be filtered from content display to avoid distraction)
-   - thumbnail: List items, cards - use for item thumbnails (displayed in content)
+   - thumbnail: List items, cards - use for item thumbnails (displayed in content). For ITEM_LISTING intent do NOT use thumbnails - use text-only list items.
    - icon: Decorative elements - use for small icons and avatars (displayed in content)
 
 10. Use Chip components ONLY for:
@@ -925,13 +856,11 @@ Your goal is to analyze the user's question and generate the most appropriate UI
 
 13. Use Button with icon property for actions:
    - icon: "plus" for save buttons
-   - icon: "speaker" for AI speak buttons
-   - icon: "screen" for send to phone buttons
+   - icon: "speaker" for AI mute buttons
 
-14. REQUIRED: Always include a Row of three action buttons as the last item in root Column:
+14. REQUIRED: Always include a Row of two action buttons as the last item in root Column:
    - Save button (icon="plus")
-   - AI Speak button (icon="speaker")
-   - Send to Phone button (icon="screen")
+   - AI Mute button (icon="speaker")
 
 14. CRITICAL: Label usage rules (Text usageHint="label"):
    - Labels MUST appear ONLY directly underneath titles (display/title)
@@ -993,7 +922,7 @@ Your response MUST be a valid JSON object. Example structure:
     {{
       "id": "actions-row",
       "component": {{
-        "Row": {{ "children": {{ "explicitList": ["save-button", "speak-button", "phone-button"] }} }}
+        "Row": {{ "children": {{ "explicitList": ["save-button", "mute-button"] }} }}
       }}
     }},
     {{
@@ -1009,27 +938,15 @@ Your response MUST be a valid JSON object. Example structure:
       }}
     }},
     {{
-      "id": "speak-button",
+      "id": "mute-button",
       "component": {{
-        "Button": {{ "child": "speak-text", "icon": "speaker" }}
+        "Button": {{ "child": "mute-text", "icon": "speaker" }}
       }}
     }},
     {{
-      "id": "speak-text",
+      "id": "mute-text",
       "component": {{
-        "Text": {{ "text": {{ "literalString": "Speak" }}, "usageHint": "body" }}
-      }}
-    }},
-    {{
-      "id": "phone-button",
-      "component": {{
-        "Button": {{ "child": "phone-text", "icon": "screen" }}
-      }}
-    }},
-    {{
-      "id": "phone-text",
-      "component": {{
-        "Text": {{ "text": {{ "literalString": "Phone" }}, "usageHint": "body" }}
+        "Text": {{ "text": {{ "literalString": "Mute" }}, "usageHint": "body" }}
       }}
     }}
   ],

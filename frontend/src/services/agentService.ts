@@ -106,10 +106,12 @@ export interface AskWithVoiceContext {
   transcriptSnippet?: string;
 }
 
-/** Result of ask-with-voice stream (same as AskResponse). */
+/** Result of ask-with-voice stream (same as AskResponse), or a voice command (no Gemini). */
 export interface AskWithVoiceResult {
-  uiSchema: UIResponse;
+  uiSchema?: UIResponse;
   verbalSummary?: string;
+  /** When set, backend detected a voice command; no uiSchema. */
+  voiceCommand?: 'add_to_collection' | 'go_to_collection_page';
   /** Optional timings from caller (step1 = getVoiceContext, step2 = askWithVoice) for [TOTAL] Voice flow. */
   voiceTimings?: { step1Ms: number; step2Ms: number; step2aMs?: number; step2bMs?: number };
   /** Set by askWithVoice: streaming call 1 (transcribe + refine) vs rest (main call). */
@@ -167,6 +169,8 @@ export const askWithVoice = async (
           if (eventType === 'transcript_chunk' && typeof data.text === 'string') {
             tLastChunk = performance.now();
             callbacks.onChunk(data.text);
+          } else if (eventType === 'voice_command' && typeof data.command === 'string') {
+            result = { voiceCommand: data.command as 'add_to_collection' | 'go_to_collection_page' };
           } else if (eventType === 'result') {
             result = data as unknown as AskWithVoiceResult;
             const tResult = performance.now();
@@ -187,5 +191,5 @@ export const askWithVoice = async (
     if (result != null) break;
   }
   if (!result) throw new Error('No result from ask-with-voice');
-  return result;
+  return result as AskWithVoiceResult;
 };

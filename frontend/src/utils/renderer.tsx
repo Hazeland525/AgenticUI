@@ -5,6 +5,7 @@ import { componentCatalog } from '../components/catalog';
 interface RendererProps {
   schema: UIResponse;
   onSave?: (componentId: string) => void;
+  onMute?: () => void;
 }
 
 // Helper to get component type name from component definition
@@ -44,12 +45,11 @@ function getComponentProps(component: ComponentDefinition): any {
 function getButtonFallbackLabel(componentId: string): string {
   const id = (componentId || '').toLowerCase();
   if (id.includes('save')) return 'Save';
-  if (id.includes('speak')) return 'Speak';
-  if (id.includes('phone')) return 'Phone';
+  if (id.includes('speak') || id.includes('mute')) return 'Mute';
   return 'Button';
 }
 
-export const renderComponents = (schema: UIResponse, onSave?: (componentId: string) => void): React.ReactNode[] => {
+export const renderComponents = (schema: UIResponse, onSave?: (componentId: string) => void, onMute?: () => void): React.ReactNode[] => {
   if (!schema || !schema.components || schema.components.length === 0) {
     console.warn('Renderer: No components in schema');
     return [];
@@ -83,6 +83,13 @@ export const renderComponents = (schema: UIResponse, onSave?: (componentId: stri
     }
     
     const componentType = getComponentType(component.component);
+
+    // Hide "Send to phone" button in prototype
+    if (componentType === 'Button') {
+      const id = (componentId || '').toLowerCase();
+      if (id.includes('phone')) return null;
+    }
+
     const Component = componentCatalog[componentType];
     
     if (!Component) {
@@ -112,6 +119,15 @@ export const renderComponents = (schema: UIResponse, onSave?: (componentId: stri
         onSave(component.id);
       }
     };
+
+    const isMuteButton = componentType === 'Button' && (
+      componentId.toLowerCase().includes('mute') ||
+      componentId.toLowerCase().includes('speak') ||
+      cleanProps.icon === 'speaker'
+    );
+    const actionProps = componentType === 'Button'
+      ? { onSave: handleSave, ...(isMuteButton && onMute ? { onClick: onMute } : {}) }
+      : { onSave: handleSave };
 
     // Handle child references based on component type
     let childComponents: React.ReactNode[] | undefined;
@@ -161,7 +177,7 @@ export const renderComponents = (schema: UIResponse, onSave?: (componentId: stri
           key={component.id}
           {...cleanProps}
           childComponents={childComponents}
-          onSave={handleSave}
+          {...actionProps}
         />
       );
     } else if (childComponent !== undefined) {
@@ -170,7 +186,7 @@ export const renderComponents = (schema: UIResponse, onSave?: (componentId: stri
           key={component.id}
           {...cleanProps}
           childComponent={childComponent}
-          onSave={handleSave}
+          {...actionProps}
         />
       );
     } else {
@@ -178,7 +194,7 @@ export const renderComponents = (schema: UIResponse, onSave?: (componentId: stri
         <Component
           key={component.id}
           {...cleanProps}
-          onSave={handleSave}
+          {...actionProps}
         />
       );
     }

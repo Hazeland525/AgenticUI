@@ -6,19 +6,21 @@ A prototype AI agent interface that answers questions using **voice or text** an
 
 - **Multimodal input** — Type questions or hold **S** to speak; optional video frame is sent with each request for visual context.
 - **Voice (Option B)** — Raw audio + video screenshot go directly to Gemini (no transcription dependency), so answers stay accurate. A separate stream shows the transcribed question for display only.
-- **Structured responses** — Intent-driven UI: hero/detail modules, step-by-step (e.g. recipes), simple identification, list layouts. Semantic image matching from a local image library.
-- **Collections** — Save answers to a personal library (SQLite); gallery view, reload or delete items.
+- **Structured responses** — Intent-driven UI: hero/detail modules, step-by-step (e.g. recipes), simple identification, text-only list layouts. Semantic image matching from a local image library.
+- **Collections** — Save answers via the **Add** button or voice; personal library (SQLite), gallery view, reload or delete items.
 - **Recommendations** — Ask for places (e.g. “Recommend Italian restaurants”); uses user profile, Maps Grounding Lite, and Places API for rich cards (photos, ratings, links).
+
+- **AI Mute** — TTS plays by default for answers; use the **Mute** button to stop or silence future playback.
 
 ## Tech Stack
 
 - **Frontend:** React 18, TypeScript, React Router, Axios.
-- **Backend:** FastAPI, Google Gemini, SQLite. Services: Gemini (LLM + audio/image), Speech (transcription for display), Maps + Places, Storage, User Profile, Image Search.
+- **Backend:** FastAPI, Google Gemini, SQLite. Services: Gemini (LLM + audio/image), Speech (transcription + voice-command detection), Maps + Places, Storage, User Profile, Image Search.
 
 ## Demo
 
-**[Video: AgenticUI – Voice, text, and video context](placeholder)**  
-*(Insert your demo video link here.)*
+**[AgenticUI – Voice, text, and video context](https://youtu.be/1vRQO1jcMXo)**  
+Demo video on YouTube showing the prototype in action.
 
 ## Setup & Installation
 

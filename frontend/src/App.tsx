@@ -126,6 +126,8 @@ function App() {
   const [profileAvatar, setProfileAvatar] = useState<string>('/icons/profile1.jpg');
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const [isAiMuted, setIsAiMuted] = useState(false);
+  const currentTtsAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
   const hasEverHadResultRef = useRef(false);
@@ -188,17 +190,20 @@ function App() {
       hasEverHadResultRef.current = true;
 
       let step3Ms = 0;
-      if (verbalSummary && verbalSummary.trim()) {
+      if (verbalSummary && verbalSummary.trim() && !isAiMuted) {
         try {
           const t2 = performance.now();
           const audioUrl = await getTtsAudio(verbalSummary.trim());
           const audio = new Audio(audioUrl);
+          currentTtsAudioRef.current = audio;
           audio.onended = () => {
             setIsAiSpeaking(false);
+            currentTtsAudioRef.current = null;
             URL.revokeObjectURL(audioUrl);
           };
           audio.onerror = () => {
             setIsAiSpeaking(false);
+            currentTtsAudioRef.current = null;
             URL.revokeObjectURL(audioUrl);
           };
           setIsAiSpeaking(true);
@@ -209,6 +214,8 @@ function App() {
           console.warn('TTS playback failed:', e);
           setIsAiSpeaking(false);
         }
+      } else if (verbalSummary?.trim() && isAiMuted) {
+        console.log('[STEP] 3. TTS — skipped (AI muted)');
       } else {
         console.log('[STEP] 3. TTS — skipped (no verbalSummary)');
       }
@@ -246,6 +253,30 @@ function App() {
   };
 
   const handleVoiceResult = async (result: AskWithVoiceResult, refinedQuestion: string) => {
+    if (result.voiceCommand) {
+      setIsLoading(false);
+      setIsVoiceProcessing(false);
+      if (result.voiceCommand === 'add_to_collection') {
+        if (currentSchema) {
+          await handleSave(currentSchema);
+        } else {
+          alert('Nothing to save. Ask a question first.');
+        }
+        return;
+      }
+      if (result.voiceCommand === 'go_to_collection_page') {
+        navigate('/collections');
+        return;
+      }
+      return;
+    }
+
+    if (!result.uiSchema) {
+      setIsLoading(false);
+      setIsVoiceProcessing(false);
+      return;
+    }
+
     console.log('Voice result received', {
       refinedQuestion: refinedQuestion.slice(0, 60),
       components: result.uiSchema.components?.length ?? 0,
@@ -260,17 +291,20 @@ function App() {
     hasEverHadResultRef.current = true;
 
     let step3Ms = 0;
-    if (result.verbalSummary?.trim()) {
+    if (result.verbalSummary?.trim() && !isAiMuted) {
       try {
         const t0 = performance.now();
         const audioUrl = await getTtsAudio(result.verbalSummary.trim());
         const audio = new Audio(audioUrl);
+        currentTtsAudioRef.current = audio;
         audio.onended = () => {
           setIsAiSpeaking(false);
+          currentTtsAudioRef.current = null;
           URL.revokeObjectURL(audioUrl);
         };
         audio.onerror = () => {
           setIsAiSpeaking(false);
+          currentTtsAudioRef.current = null;
           URL.revokeObjectURL(audioUrl);
         };
         setIsAiSpeaking(true);
@@ -281,6 +315,8 @@ function App() {
         console.warn('TTS playback failed:', e);
         setIsAiSpeaking(false);
       }
+    } else if (result.verbalSummary?.trim() && isAiMuted) {
+      console.log('[STEP] 3. TTS — skipped (AI muted)');
     } else {
       console.log('[STEP] 3. TTS — skipped (no verbalSummary)');
     }
@@ -316,6 +352,18 @@ function App() {
 
   const handlePreloadedVideoSelect = (path: string) => {
     setVideoUrl(path);
+  };
+
+  const handleMuteToggle = () => {
+    setIsAiMuted((m) => {
+      const next = !m;
+      if (next && currentTtsAudioRef.current) {
+        currentTtsAudioRef.current.pause();
+        currentTtsAudioRef.current = null;
+        setIsAiSpeaking(false);
+      }
+      return next;
+    });
   };
 
   return (
@@ -400,6 +448,7 @@ function App() {
                     isLoading={isLoading}
                     currentSchema={currentSchema}
                     currentQuestion={currentQuestion}
+                    onMuteToggle={handleMuteToggle}
                   />
                 </div>
                 <div className="app-profile-overlay">
@@ -429,14 +478,19 @@ function App() {
                   }}
                   onVoiceResult={handleVoiceResult}
                   onVoiceStart={() => {
-                    setCurrentQuestion('processing the question...');
-                    setCurrentSchema(null);
                     setIsVoiceProcessing(true);
-                    setIsLoading(true);
                   }}
                   onVoiceError={() => {
                     setIsLoading(false);
                     setIsVoiceProcessing(false);
+                  }}
+                  onVoiceStreamingStart={(streamingTextSoFar) => {
+                    setIsLoading(true);
+                    setCurrentSchema(null);
+                    setCurrentQuestion(streamingTextSoFar || 'Processing...');
+                  }}
+                  onVoiceStreamingChunk={(streamingTextSoFar) => {
+                    setCurrentQuestion(streamingTextSoFar || 'Processing...');
                   }}
                 />
               )}

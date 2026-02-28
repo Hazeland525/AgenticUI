@@ -6,6 +6,7 @@ import './Sidebar.css';
 interface SidebarProps {
   onAskQuestion: (question: string) => Promise<void>;
   onSave?: (uiSchema: UIResponse) => void;
+  onMuteToggle?: () => void;
   isLoading?: boolean;
   currentSchema?: UIResponse | null;
   currentQuestion?: string;
@@ -75,6 +76,7 @@ function filterImageComponents(schema: UIResponse, imageComponentIds: Set<string
 export const Sidebar: React.FC<SidebarProps> = ({
   onAskQuestion,
   onSave,
+  onMuteToggle,
   isLoading = false,
   currentSchema = null,
   currentQuestion = '',
@@ -129,7 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
           {!isLoading && filteredSchema && (
             <div className="sidebar-components">
-              {renderComponents(filteredSchema, handleSave).map((component, index) => (
+              {renderComponents(filteredSchema, handleSave, onMuteToggle).map((component, index) => (
                 <div key={index} className="sidebar-answer-wrapper">
                   {component}
                 </div>

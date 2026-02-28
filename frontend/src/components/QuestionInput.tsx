@@ -13,6 +13,10 @@ interface QuestionInputProps {
   onVoiceResult?: (result: AskWithVoiceResult, refinedQuestion: string) => void;
   onVoiceStart?: () => void;
   onVoiceError?: () => void;
+  /** Called when getVoiceContext is done and first transcript chunk arrived; use to switch sidebar to streaming state. */
+  onVoiceStreamingStart?: (streamingTextSoFar: string) => void;
+  /** Called on each transcript chunk so parent can show live question in sidebar. */
+  onVoiceStreamingChunk?: (streamingTextSoFar: string) => void;
 }
 
 export const QuestionInput: React.FC<QuestionInputProps> = ({
@@ -23,11 +27,14 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({
   onVoiceResult,
   onVoiceStart,
   onVoiceError,
+  onVoiceStreamingStart,
+  onVoiceStreamingChunk,
 }) => {
   const [question, setQuestion] = useState('');
   const [isRefining, setIsRefining] = useState(false);
   const [streamingText, setStreamingText] = useState('');
   const streamingRef = useRef('');
+  const firstChunkSentRef = useRef(false);
 
   const handleTranscript = async (rawSpeech: string) => {
     if (!rawSpeech.trim()) return;
@@ -54,6 +61,7 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({
 
   const handleVoiceAudio = async (base64Audio: string) => {
     if (!getVoiceContext || !onVoiceResult) return;
+    firstChunkSentRef.current = false;
     onVoiceStart?.();
     streamingRef.current = '';
     setStreamingText('');
@@ -67,7 +75,13 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({
       const result = await askWithVoice(base64Audio, context, {
         onChunk: (text) => {
           streamingRef.current += text;
-          setStreamingText(streamingRef.current.replace(/\n?---\s*$/, '').trimEnd());
+          const displayText = streamingRef.current.replace(/\n?---\s*$/, '').trimEnd();
+          setStreamingText(displayText);
+          if (!firstChunkSentRef.current) {
+            firstChunkSentRef.current = true;
+            onVoiceStreamingStart?.(displayText);
+          }
+          onVoiceStreamingChunk?.(displayText);
         },
       });
       const step2Ms = performance.now() - t1;

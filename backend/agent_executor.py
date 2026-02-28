@@ -199,9 +199,47 @@ def _sse_message(event: str, data: dict) -> str:
 @router.post("/ask-with-voice")
 async def ask_with_voice(request: AskWithVoiceRequest):
     """
-    Audio → Gemini Call 1 (stream transcribe+refine) → as soon as refined question is available,
-    fire Call 2 (main ask with image) in parallel. Stream transcript chunks via SSE, then send result.
+    First run basic voice-command detection (fast STT). If user said "add to collection" or
+    "go to collection page", stream voice_command and skip Gemini. Otherwise:
+    Audio → Gemini (stream transcribe+refine) → main ask with image. Stream transcript chunks via SSE, then send result.
     """
+    loop = asyncio.get_event_loop()
+    # Fast STT before Gemini for voice commands
+    try:
+        transcript = await loop.run_in_executor(
+            None,
+            lambda: get_speech_service().transcribe_base64_audio(
+                request.audio_data,
+                language_code="en-US",
+                audio_format="webm_opus",
+            ),
+        )
+    except Exception as e:
+        logger.warning("Voice-command STT failed, falling back to full flow: %s", e)
+        transcript = ""
+
+    t = (transcript or "").strip().lower()
+    add_to_collection = "add" in t and "collection" in t
+    go_to_collection = "collection" in t and any(
+        phrase in t for phrase in ["go to", "open", "navigate", "take me", "show me", "go to collection"]
+    )
+
+    async def voice_command_stream(cmd: str):
+        yield _sse_message("voice_command", {"command": cmd})
+
+    if add_to_collection:
+        return StreamingResponse(
+            voice_command_stream("add_to_collection"),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+    if go_to_collection:
+        return StreamingResponse(
+            voice_command_stream("go_to_collection_page"),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
     async def event_stream():
         queue = asyncio.Queue()
         loop = asyncio.get_event_loop()
