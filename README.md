@@ -19,8 +19,9 @@ A prototype AI agent interface that answers questions using **voice or text** an
 
 ## Demo
 
-**[AgenticUI – Voice, text, and video context](https://youtu.be/1vRQO1jcMXo)**  
-Demo video on YouTube showing the prototype in action.
+[![AgenticUI – Voice, text, and video context](https://img.youtube.com/vi/1vRQO1jcMXo/maxresdefault.jpg)](https://youtu.be/1vRQO1jcMXo)
+
+*Click the image to watch on YouTube.*
 
 ## Setup & Installation
 
